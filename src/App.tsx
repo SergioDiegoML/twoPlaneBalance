@@ -1,8 +1,9 @@
-import React from "react";
 import { useForm } from "react-hook-form";
 import { QueryClient, QueryClientProvider, useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 const queryClient = new QueryClient();
 
@@ -74,7 +75,7 @@ function BalancingForm() {
       {VECTOR_FIELDS.map(({ id, label }) => (
         <VectorRow key={id} id={id} label={label} register={register} errors={errors} />
       ))}
-      <Button type="submit" className="mt-4">Calculate</Button>
+      <Button type="submit" className="mt-4 w-full">{mutation.isPending ? <FontAwesomeIcon spin icon={faSpinner} /> : "Calculate"}</Button>
 
       {mutation.data && (
         <div className="mt-6 text-sm text-gray-800">
