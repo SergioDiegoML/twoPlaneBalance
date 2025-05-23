@@ -32,7 +32,6 @@ function vectorLineChart(vectors: { [key: string]: { real: number; imag: number 
   const allValues = keys.flatMap(key => [vectors[key].real, vectors[key].imag]);
   const max = Math.max(...allValues.map(Math.abs)) * 1.2;
   return {
-    type: 'line',
     data: {
       datasets: keys.map((key, index) => ({
         label: key,
@@ -61,12 +60,12 @@ function vectorLineChart(vectors: { [key: string]: { real: number; imag: number 
       },
       scales: {
         x: {
-          type: 'linear',
+          type: 'linear' as const,
           min: -max,
           max: max,
         },
         y: {
-          type: 'linear',
+          type: 'linear' as const,
           min: -max,
           max: max,
         },
