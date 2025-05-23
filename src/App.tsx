@@ -124,7 +124,7 @@ function BalancingForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to calculate");
+      if (!res.ok) throw new Error("Excepción inesperada durante el calculo");
       return res.json();
     },
   });
