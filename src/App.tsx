@@ -1,9 +1,15 @@
 import { useForm } from "react-hook-form";
+import { useMemo } from "react";
 import { QueryClient, QueryClientProvider, useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { Chart as ChartJS, LineElement, PointElement, LinearScale, Title, Tooltip, Legend, CategoryScale } from 'chart.js';
+import { Line } from 'react-chartjs-2';
+import { v4 as uuidv4 } from 'uuid';
+
+ChartJS.register(LineElement, PointElement, LinearScale, Title, Tooltip, Legend, CategoryScale);
 
 const queryClient = new QueryClient();
 
@@ -21,6 +27,53 @@ const VECTOR_FIELDS = [
 type FormData = {
   [key: string]: [number, number]; // [magnitude, angle_deg]
 };
+
+function vectorLineChart(vectors: { [key: string]: { real: number; imag: number } }, keys: string[], title: string) {
+  const allValues = keys.flatMap(key => [vectors[key].real, vectors[key].imag]);
+  const max = Math.max(...allValues.map(Math.abs)) * 1.2;
+  return {
+    type: 'line',
+    data: {
+      datasets: keys.map((key, index) => ({
+        label: key,
+        data: [
+          { x: 0, y: 0 },
+          { x: vectors[key].real, y: vectors[key].imag }
+        ],
+        borderColor: index === 0 ? 'rgba(255, 99, 132, 1)' : 'rgba(54, 162, 235, 1)',
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 4,
+        tension: 0
+      }))
+    },
+    options: {
+      responsive: true,
+      aspectRatio: 1,
+      plugins: {
+        title: {
+          display: true,
+          text: title
+        },
+        legend: {
+          display: true
+        },
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          min: -max,
+          max: max,
+        },
+        y: {
+          type: 'linear',
+          min: -max,
+          max: max,
+        },
+      }
+    }
+  };
+}
 
 function VectorRow({ register, errors, id, label }: { register: any; errors: any; id: string; label: string }) {
   return (
@@ -78,9 +131,11 @@ function BalancingForm() {
   });
 
   const onSubmit = (data: FormData) => {console.log(data);mutation.mutate(data);}
+  const chartKeyLeft = useMemo(() => uuidv4(), [mutation.data?.B_L]);
+  const chartKeyRight = useMemo(() => uuidv4(), [mutation.data?.B_R]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="w-full mx-4 sm:max-w-xl sm:mx-auto p-6 bg-white shadow rounded-lg">
+    <form onSubmit={handleSubmit(onSubmit)} className="w-full m-4 sm:max-w-xl sm:mx-auto p-6 bg-white shadow rounded-lg">
       <h2 className="text-xl font-semibold mb-6">Balanceo dinamico de dos planos</h2>
       {VECTOR_FIELDS.map(({ id, label }) => (
         <VectorRow key={id} id={id} label={label} register={register} errors={errors} />
@@ -88,9 +143,17 @@ function BalancingForm() {
       <Button type="submit" className="mt-4 w-full">{mutation.isPending ? <FontAwesomeIcon spin icon={faSpinner} /> : "Calcular"}</Button>
 
       {mutation.data && (
-        <div className="mt-6 text-sm text-gray-800">
-          <p><strong>Balanceo izquierdo:</strong> Magnitude: {mutation.data.B_L.magnitude.toFixed(2)} | Angulo: {mutation.data.B_L.angle_deg.toFixed(2)}°</p>
-          <p><strong>Balanceo derecho:</strong> Magnitude: {mutation.data.B_R.magnitude.toFixed(2)} | Angulo: {mutation.data.B_R.angle_deg.toFixed(2)}°</p>
+        <div className="mt-6 text-sm text-gray-800 space-y-8">
+          <div className="aspect-1/1 w-full">
+            <p><strong>Balance izquierdo:</strong> Magnitud: {mutation.data.B_L.magnitude.toFixed(2)} | Angulo: {mutation.data.B_L.angle.toFixed(2)}°</p>
+            <p><strong>Desbalance:</strong> Magnitud: {mutation.data.U_L.magnitude.toFixed(2)} | Angulo: {mutation.data.U_L.angle.toFixed(2)}°</p>
+            <Line key={chartKeyLeft} id={`left-${chartKeyLeft}`} {...vectorLineChart(mutation.data, ['B_L', 'U_L'], 'Vectores del lado izquierdo')} />
+          </div>
+          <div>
+            <p><strong>Balance derecho:</strong> Magnitud: {mutation.data.B_R.magnitude.toFixed(2)} | Angulo: {mutation.data.B_R.angle.toFixed(2)}°</p>
+            <p><strong>Desbalance:</strong> Magnitud: {mutation.data.U_R.magnitude.toFixed(2)} | Angulo: {mutation.data.U_R.angle.toFixed(2)}°</p>
+            <Line key={chartKeyRight} id={`right-${chartKeyRight}`} {...vectorLineChart(mutation.data, ['B_R', 'U_R'], 'Vectores del lado derecho')} />
+          </div>
         </div>
       )}
 
